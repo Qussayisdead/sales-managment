@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تجارة الدخان العربي</title>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: #2c7be5;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    main {
+      padding: 15px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      padding: 15px;
+    }
+    h2 {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      color: #2c7be5;
+    }
+    label {
+      display: block;
+      margin: 8px 0 3px;
+      font-size: 0.9em;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #2c7be5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1a5dcc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 8px;
+      text-align: center;
+      font-size: 0.9em;
+    }
+    .actions button {
+      width: auto;
+      padding: 4px 8px;
+      margin: 0 2px;
+      border-radius: 5px;
+      font-size: 0.8em;
+    }
+    .edit-btn { background: #ffc107; color: #000; }
+    .delete-btn { background: #dc3545; }
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .stat-box {
+      background: #e9f2ff;
+      border-radius: 8px;
+      padding: 10px;
+      flex: 1;
+      min-width: 100px;
+    }
+    .stat-box h3 {
+      margin: 0;
+      font-size: 1em;
+      color: #2c7be5;
+    }
+    .stat-box p {
+      font-size: 1em;
+      font-weight: bold;
+      margin: 5px 0 0;
+    }
+  </style>
+</head>
+<body>
+  <header>💨 تجارة الدخان العربي</header>
+  <main>
+    <!-- الإحصائيات -->
+    <div class="card">
+      <h2>📊 الإحصائيات</h2>
+      <div class="stats">
+        <div class="stat-box">
+          <h3>ربح اليوم</h3>
+          <p id="dailyProfit">0 ₪</p>
+        </div>
+        <div class="stat-box">
+          <h3>ربح الأسبوع</h3>
+          <p id="weeklyProfit">0 ₪</p>
+        </div>
+        <div class="stat-box">
+          <h3>ربح الشهر</h3>
+          <p id="monthlyProfit">0 ₪</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- المشتريات -->
+    <div class="card">
+      <h2>📦 تسجيل المشتريات</h2>
+      <input type="hidden" id="buyEditIndex">
+      <label>التاريخ:</label>
+      <input type="date" id="buyDate">
+      <label>الكمية (كغ):</label>
+      <input type="number" id="buyQty">
+      <label>سعر الكيلو (₪):</label>
+      <input type="number" id="buyPrice">
+      <button onclick="addPurchase()">💰 حفظ المشتريات</button>
+    </div>
+
+    <!-- المبيعات -->
+    <div class="card">
+      <h2>💸 تسجيل المبيعات</h2>
+      <input type="hidden" id="sellEditIndex">
+      <label>التاريخ:</label>
+      <input type="date" id="sellDate">
+      <label>الكمية (كغ):</label>
+      <input type="number" id="sellQty">
+      <label>سعر الكيلو (₪):</label>
+      <input type="number" id="sellPrice">
+      <button onclick="addSale()">📈 حفظ المبيعات</button>
+    </div>
+
+    <!-- الجداول -->
+    <div class="card">
+      <h2>📋 المشتريات</h2>
+      <table id="purchasesTable">
+        <tr><th>تاريخ</th><th>كمية</th><th>سعر الكيلو</th><th>المجموع</th><th>إجراء</th></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🧾 المبيعات</h2>
+      <table id="salesTable">
+        <tr><th>تاريخ</th><th>كمية</th><th>سعر الكيلو</th><th>المجموع</th><th>إجراء</th></tr>
+      </table>
+    </div>
+
+    <!-- صافي الربح حسب التاريخ -->
+    <div class="card">
+      <h2>📅 صافي الربح حسب التاريخ</h2>
+      <table id="profitTable">
+        <tr><th>التاريخ</th><th>صافي الربح (₪)</th></tr>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+    let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+
+    function addPurchase() {
+      const date = document.getElementById('buyDate').value;
+      const qty = parseFloat(document.getElementById('buyQty').value);
+      const price = parseFloat(document.getElementById('buyPrice').value);
+      const editIndex = document.getElementById('buyEditIndex').value;
+
+      if (!date || !qty || !price) return alert('املأ جميع الحقول');
+
+      if (editIndex) {
+        purchases[editIndex] = { date, qty, price };
+        document.getElementById('buyEditIndex').value = '';
+      } else {
+        purchases.push({ date, qty, price });
+      }
+
+      localStorage.setItem('purchases', JSON.stringify(purchases));
+      renderTables();
+      updateStats();
+      clearInputs('buy');
+    }
+
+    function addSale() {
+      const date = document.getElementById('sellDate').value;
+      const qty = parseFloat(document.getElementById('sellQty').value);
+      const price = parseFloat(document.getElementById('sellPrice').value);
+      const editIndex = document.getElementById('sellEditIndex').value;
+
+      if (!date || !qty || !price) return alert('املأ جميع الحقول');
+
+      if (editIndex) {
+        sales[editIndex] = { date, qty, price };
+        document.getElementById('sellEditIndex').value = '';
+      } else {
+        sales.push({ date, qty, price });
+      }
+
+      localStorage.setItem('sales', JSON.stringify(sales));
+      renderTables();
+      updateStats();
+      clearInputs('sell');
+    }
+
+    function clearInputs(type) {
+      document.getElementById(type + 'Date').value = '';
+      document.getElementById(type + 'Qty').value = '';
+      document.getElementById(type + 'Price').value = '';
+    }
+
+    function editPurchase(index) {
+      const p = purchases[index];
+      document.getElementById('buyDate').value = p.date;
+      document.getElementById('buyQty').value = p.qty;
+      document.getElementById('buyPrice').value = p.price;
+      document.getElementById('buyEditIndex').value = index;
+    }
+
+    function deletePurchase(index) {
+      if (confirm('هل أنت متأكد من الحذف؟')) {
+        purchases.splice(index, 1);
+        localStorage.setItem('purchases', JSON.stringify(purchases));
+        renderTables();
+        updateStats();
+      }
+    }
+
+    function editSale(index) {
+      const s = sales[index];
+      document.getElementById('sellDate').value = s.date;
+      document.getElementById('sellQty').value = s.qty;
+      document.getElementById('sellPrice').value = s.price;
+      document.getElementById('sellEditIndex').value = index;
+    }
+
+    function deleteSale(index) {
+      if (confirm('هل أنت متأكد من الحذف؟')) {
+        sales.splice(index, 1);
+        localStorage.setItem('sales', JSON.stringify(sales));
+        renderTables();
+        updateStats();
+      }
+    }
+
+    function renderTables() {
+      const pTable = document.getElementById('purchasesTable');
+      const sTable = document.getElementById('salesTable');
+      const profitTable = document.getElementById('profitTable');
+
+      pTable.innerHTML = `<tr><th>تاريخ</th><th>كمية</th><th>سعر الكيلو</th><th>المجموع</th><th>إجراء</th></tr>`;
+      sTable.innerHTML = `<tr><th>تاريخ</th><th>كمية</th><th>سعر الكيلو</th><th>المجموع</th><th>إجراء</th></tr>`;
+      profitTable.innerHTML = `<tr><th>التاريخ</th><th>صافي الربح (₪)</th></tr>`;
+
+      purchases.forEach((p, i) => {
+        const total = p.qty * p.price;
+        pTable.innerHTML += `<tr>
+          <td>${p.date}</td>
+          <td>${p.qty}</td>
+          <td>${p.price}</td>
+          <td>${total}</td>
+          <td class="actions">
+            <button class="edit-btn" onclick="editPurchase(${i})">تعديل</button>
+            <button class="delete-btn" onclick="deletePurchase(${i})">حذف</button>
+          </td>
+        </tr>`;
+      });
+      sales.forEach((s, i) => {
+        const total = s.qty * s.price;
+        sTable.innerHTML += `<tr>
+          <td>${s.date}</td>
+          <td>${s.qty}</td>
+          <td>${s.price}</td>
+          <td>${total}</td>
+          <td class="actions">
+            <button class="edit-btn" onclick="editSale(${i})">تعديل</button>
+            <button class="delete-btn" onclick="deleteSale(${i})">حذف</button>
+          </td>
+        </tr>`;
+      });
+
+      // حساب صافي الربح لكل يوم
+      const allDates = [...new Set([...purchases.map(p => p.date), ...sales.map(s => s.date)])];
+      allDates.sort((a, b) => new Date(a) - new Date(b));
+
+      allDates.forEach(date => {
+        const dayPurchases = purchases.filter(p => p.date === date)
+          .reduce((sum, p) => sum + p.qty * p.price, 0);
+        const daySales = sales.filter(s => s.date === date)
+          .reduce((sum, s) => sum + s.qty * s.price, 0);
+        const profit = daySales - dayPurchases;
+        profitTable.innerHTML += `<tr><td>${date}</td><td>${profit}</td></tr>`;
+      });
+    }
+
+    function updateStats() {
+      const today = new Date();
+      const getSum = (arr, start, end) => arr
+        .filter(a => {
+          const d = new Date(a.date);
+          return d >= start && d <= end;
+        })
+        .reduce((sum, a) => sum + a.qty * a.price, 0);
+
+      const sumPurchases = (start, end) => getSum(purchases, start, end);
+      const sumSales = (start, end) => getSum(sales, start, end);
+
+      const getRange = days => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - days);
+        return [start, end];
+      };
+
+      const [d1, d2] = getRange(0);
+      const [w1, w2] = getRange(7);
+      const [m1, m2] = getRange(30);
+
+      document.getElementById('dailyProfit').textContent = (sumSales(d1, d2) - sumPurchases(d1, d2)) + ' ₪';
+      document.getElementById('weeklyProfit').textContent = (sumSales(w1, w2) - sumPurchases(w1, w2)) + ' ₪';
+      document.getElementById('monthlyProfit').textContent = (sumSales(m1, m2) - sumPurchases(m1, m2)) + ' ₪';
+    }
+
+    renderTables();
+    updateStats();
+  </script>
+</body>
+</html>
